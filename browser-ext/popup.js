@@ -1,4 +1,7 @@
 // @ts-nocheck
+// eslint-disable-next-line import/extensions
+import { showAccount as renderAccount } from './account-view.js';
+
 /**
  * =============================
  * =        Constants          =
@@ -109,25 +112,24 @@ const loadEnvironments = (environments) => {
 
 const fetchEnvironments = () => fetch(chrome.runtime.getURL('./environments.json')).then((response) => response.json());
 
-/**
- * Show who is signed in to the selected environment
- * @param {{name?: string, preferred_username?: string} | null} account
- */
-const showAccount = (account) => {
-    document.getElementById('accountStatus').textContent = account ? `Signed in as ${account.name || account.preferred_username}` : 'Not signed in';
-    document.getElementById('signInButton').classList.toggle('hidden', !!account);
-    document.getElementById('signOutButton').classList.toggle('hidden', !account);
-};
+/** @param {{name?: string, preferred_username?: string} | null} account */
+const showAccount = (account) => renderAccount(document, account);
 
 const sendToBackground = (message) => chrome.runtime.sendMessage({ environment: getSelectedEnvironment(), ...message });
 
+/**
+ * Show who is signed in to the selected environment
+ * @returns {Promise<object | null>} the account, or null when nobody is signed in
+ */
 const refreshAccount = async () => {
     if (!getSelectedEnvironment()) {
         showAccount(null);
-        return;
+        return null;
     }
     const response = await sendToBackground({ type: 'account' });
-    showAccount(response?.account || null);
+    const account = response?.account || null;
+    showAccount(account);
+    return account;
 };
 
 /**
@@ -458,8 +460,11 @@ document.getElementById('debugCheckButton').addEventListener('click', () => {
 
 document.getElementById('signInButton').addEventListener('click', async () => {
     const response = await sendToBackground({ type: 'signIn' });
-    showAccount(response?.account || null);
-    checkProfile();
+    const account = response?.account || null;
+    showAccount(account);
+    if (account) {
+        checkProfile();
+    }
 });
 
 document.getElementById('signOutButton').addEventListener('click', async () => {
@@ -471,9 +476,10 @@ LANG_SELECT.addEventListener('change', () => {
     setLang(getSelectedLang());
 });
 
-API_SELECT.addEventListener('change', () => {
-    refreshAccount();
-    checkProfile();
+API_SELECT.addEventListener('change', async () => {
+    if (await refreshAccount()) {
+        checkProfile();
+    }
 });
 
 SPEC_SELECT.addEventListener('change', () => {
@@ -554,10 +560,9 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                                 }
                             });
 
-                        fetchEnvironments().then((json) => {
+                        fetchEnvironments().then(async (json) => {
                             loadEnvironments(json);
-                            refreshAccount();
-                            if (getSelectedEnvironment()) {
+                            if (await refreshAccount()) {
                                 checkProfile();
                             }
                         });

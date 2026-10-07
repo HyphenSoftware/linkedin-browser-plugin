@@ -129,6 +129,11 @@ body {
     display: none;
 }
 
+.signedOut .requiresSignIn,
+.signedOut #profileStatus {
+    display: none;
+}
+
 .status-indicator {
     padding: 6px 12px;
     border-radius: 8px;

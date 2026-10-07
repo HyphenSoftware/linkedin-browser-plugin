@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
+<body class="signedOut">
     <div class="fullCenter">
         <span id="accountStatus">Not signed in</span>
         <button id="signInButton" class="mainButton" title="Sign in with your Hyphen Microsoft account">Sign in</button>
@@ -18,13 +18,13 @@
     <div class="fullCenter">
         <button id="liToJsonButton" class="mainButton disabled toggle" title="Export profile to JSON Resume">LinkedIn Profile to JSON</button>
         <button id="liToJsonDownloadButton" class="mainButton emojiButton disabled toggle" title="Download JSON Resume Export">💾</button>
-        <button id="debugCheckButton" class="mainButton emojiButton">🔄</button>
+        <button id="debugCheckButton" class="mainButton emojiButton requiresSignIn" title="Check whether this profile is already in Airtable">🔄</button>
     </div>
-    <div class="fullCenter">
+    <div class="fullCenter requiresSignIn">
         <button id="liToSubcontractor" class="mainButton disabled toggle" title="Add as Subcontractor">Add as Subcontractor</button>
         <button id="liToSubcontractorAlt" class="mainButton toggle hidden" title="Create new Subcontractor">Create new Subcontractor</button>
     </div>
-    <div class="fullCenter">
+    <div class="fullCenter requiresSignIn">
         <button id="liToContact" class="mainButton disabled toggle" title="Add as Contact">Add as Contact</button>
         <button id="liToContactAlt" class="mainButton toggle hidden" title="Create new Contact">Create new Contact</button>
     </div>
@@ -64,7 +64,7 @@
     <div class="fullCenter">
         <span>Version: </span><span id="versionDisplay">{version_string}</span>
     </div>
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
 </body>
 
 </html>
