@@ -1,16 +1,16 @@
 [
     {
+        "name": "PROD",
+        "apiBaseUrl": "https://ha-prod-core-service.azurewebsites.net",
+        "tenantId": "7f2175e9-c158-4ad1-8bdf-86649cdb5314",
+        "clientId": "72c34f9f-144f-4890-99ce-b4d12f50ee81",
+        "scope": "api://7f2175e9-c158-4ad1-8bdf-86649cdb5314/linkedin-importer-prod/LinkedIn.Import"
+    },
+    {
         "name": "DEV",
         "apiBaseUrl": "https://ha-dev-core-service.azurewebsites.net",
         "tenantId": "7f2175e9-c158-4ad1-8bdf-86649cdb5314",
         "clientId": "29578b36-ccc7-4c0e-b2b3-74f7819e6009",
         "scope": "api://7f2175e9-c158-4ad1-8bdf-86649cdb5314/linkedin-importer-dev/LinkedIn.Import"
-    },
-    {
-        "name": "PROD",
-        "apiBaseUrl": "https://ha-prod-core-service.azurewebsites.net",
-        "tenantId": "7f2175e9-c158-4ad1-8bdf-86649cdb5314",
-        "clientId": "<client id of LinkedIn Importer - prod>",
-        "scope": "api://7f2175e9-c158-4ad1-8bdf-86649cdb5314/linkedin-importer-prod/LinkedIn.Import"
     }
 ]

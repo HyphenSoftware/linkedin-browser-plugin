@@ -91,7 +91,7 @@ There are several main buttons in the browser extension, with different effects.
 
 
 ### Environments and Sign-in
-The popup's *Environment* dropdown lists the entries of `browser-ext/environments.json` (DEV, PROD): the core-service base URL and the Entra tenant, client ID and scope of that environment's `LinkedIn Importer` app registration. Click *Sign in* and use your Hyphen Microsoft account; only users assigned to the app registration can sign in. Lookups and imports run in the extension's background worker with your token, so you can close the popup while an import runs; the result appears as an alert in the LinkedIn tab.
+The popup's *Environment* dropdown lists the entries of `browser-ext/environments.json` (PROD, DEV), and the first one is preselected: the core-service base URL and the Entra tenant, client ID and scope of that environment's `LinkedIn Importer` app registration. Click *Sign in* and use your Hyphen Microsoft account; only users assigned to the app registration can sign in. Lookups and imports run in the extension's background worker with your token, so you can close the popup while an import runs; the result appears as an alert in the LinkedIn tab.
 
 The `key` in `manifest.json` pins the extension ID (`efifbophjnknlkgbpdiodmkaiiaeifod`), which the app registrations' redirect URI depends on. Don't remove or change it.
 
