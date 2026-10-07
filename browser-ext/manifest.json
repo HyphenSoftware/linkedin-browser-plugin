@@ -2,6 +2,7 @@
     "name": "LinkedIn to API Exporter",
     "description": "Export a LinkedIn profile page to an API",
     "manifest_version": 3,
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAy7C7UQtm13SG3JCgpjp0LYscAhcODODYrT4IUOVYogwgHDx8sAmGkFmhJ2AkgK1rC8v/ucor7dPrkrq81V2Dsm70XdNz9H4jiu/KtBmePEUuzB96eTi/me4WoxkVvbSCbThkW8atAcFwnFmuKoiIPlwwf/keVXyyUJcfASkmm/QkAmdgRHxmMGLezAOOL9Y1K4cFd8HiFvbD4f2+cjbeoY8X2S8KC+Ygte8Hvd4rhiVXUUHjsaDtt8Y5378ct1dSEWZPfok8O9Hl5qou0T037o0bOzNUup2mk+SoZ4C4VTdohjRIfzSTldmAytAGb9pnGt9/YNJLg6Badg+EB8135wIDAQAB",
     "icons": {
         "36": "icon-36.png",
         "46": "icon-46.png",
@@ -13,18 +14,11 @@
         "default_popup": "./popup.html"
     },
     "background": {
-        "service_worker": "./background.js"
+        "service_worker": "./background.js",
+        "type": "module"
     },
-    "permissions": ["declarativeContent", "activeTab", "storage", "scripting"],
+    "permissions": ["declarativeContent", "activeTab", "storage", "scripting", "identity"],
     "optional_permissions": [],
-    "host_permissions": [
-        "https://www.linkedin.com/"
-    ],
-    "optional_host_permissions": ["*://*/*"],
-    "web_accessible_resources": [
-        {
-            "resources": ["./endpoints.json"],
-            "matches": ["*://*/*"]
-        }
-    ]
+    "host_permissions": ["https://www.linkedin.com/", "https://ha-dev-core-service.azurewebsites.net/*", "https://ha-prod-core-service.azurewebsites.net/*", "https://login.microsoftonline.com/*"],
+    "optional_host_permissions": ["*://*/*"]
 }

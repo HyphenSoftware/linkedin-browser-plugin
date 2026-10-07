@@ -4,35 +4,9 @@ This document explains how to configure the required GitHub secrets for the work
 
 ## Required Secrets
 
-### `ENDPOINTS_JSON`
-
-**Used by:** `build-extension.yml`  
-**Purpose:** Contains the API endpoints configuration for the browser extension
-
-**How to set it up:**
-
-1. Go to your repository on GitHub
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Set the name as: `ENDPOINTS_JSON`
-5. Copy the contents of your local `browser-ext/endpoints.json` file
-6. Paste it into the secret value field
-7. Click **Add secret**
-
-**Expected format:**
-```json
-[{
-    "name": "PROD",
-    "importUrl": "https://your-prod-endpoint.azurewebsites.net/api/LinkedIn/JsonResumeToAirtable?code=YOUR_CODE",
-    "checkUrl": "https://your-prod-endpoint.azurewebsites.net/api/LinkedIn/DoesProfileExist?code=YOUR_CODE"
-},{
-    "name": "DEV",
-    "importUrl": "https://your-dev-endpoint.azurewebsites.net/api/LinkedIn/JsonResumeToAirtable?code=YOUR_CODE",
-    "checkUrl": "https://your-dev-endpoint.azurewebsites.net/api/LinkedIn/DoesProfileExist?code=YOUR_CODE"
-}]
-```
-
-**Note:** Make sure to copy the entire JSON array, including the square brackets.
+None. The extension signs users in with their Microsoft (Entra) account, so the build contains no
+keys. Its non-secret settings per environment (API base URL, tenant, client ID, scope) live in the
+committed `browser-ext/environments.json`.
 
 ---
 
@@ -57,8 +31,6 @@ If not set, the workflow will continue but won't upload coverage (due to `contin
 
 ### Test the Build Workflow
 
-After adding `ENDPOINTS_JSON`:
-
 1. Go to **Actions** tab
 2. Select **Build Browser Extension** workflow  
 3. Click **Run workflow**
@@ -67,70 +39,22 @@ After adding `ENDPOINTS_JSON`:
 
 The build should complete successfully and create the extension zip file.
 
-### Check for Errors
-
-If the workflow fails with "endpoints.json was not created":
-- Verify the secret name is exactly `ENDPOINTS_JSON` (case-sensitive)
-- Check that the secret value is valid JSON
-- Ensure there are no extra spaces or newlines before/after the JSON
-
 ---
 
 ## Security Best Practices
 
 ### ✅ DO:
-- Store all sensitive URLs and access codes in secrets
-- Rotate access codes periodically
-- Use separate DEV and PROD endpoints
+- Store all sensitive values in secrets
 - Review who has access to repository secrets
 
 ### ❌ DON'T:
-- Commit `endpoints.json` to the repository
 - Share secret values in issues or PRs
 - Use production secrets for testing
 - Log secret values in workflows (they're automatically masked)
 
 ---
 
-## Updating Secrets
-
-When you need to update endpoint URLs or access codes:
-
-1. Go to **Settings** → **Secrets and variables** → **Actions**
-2. Find `ENDPOINTS_JSON` in the list
-3. Click **Update**
-4. Paste the new JSON content
-5. Click **Update secret**
-
-The next workflow run will use the updated values.
-
----
-
-## Local Development
-
-For local development, you still need your local `browser-ext/endpoints.json` file:
-
-```bash
-# Copy the example file
-cp browser-ext/endpoints-example.json browser-ext/endpoints.json
-
-# Edit with your own endpoints
-# This file is gitignored and won't be committed
-```
-
----
-
 ## Troubleshooting
-
-### Workflow fails with "endpoints.json not found"
-
-**Cause:** The secret is not set or has wrong name  
-**Fix:** Double-check secret name is `ENDPOINTS_JSON` (exact match)
-
-### Extension builds but endpoints don't work
-
-**Cause:** Invalid JSON in the secret  
-**Fix:** Validate your JSON at [jsonlint.com](https://jsonlint.com) before adding as secret
 
 ### Can't find where to add secrets
 
@@ -150,7 +74,7 @@ If you prefer using the command line:
 gh auth login
 
 # Add the secret (will prompt for value)
-gh secret set ENDPOINTS_JSON < browser-ext/endpoints.json
+gh secret set CODECOV_TOKEN
 
 # Verify it was added
 gh secret list

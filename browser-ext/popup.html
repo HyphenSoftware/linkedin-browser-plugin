@@ -11,6 +11,11 @@
 
 <body>
     <div class="fullCenter">
+        <span id="accountStatus">Not signed in</span>
+        <button id="signInButton" class="mainButton" title="Sign in with your Hyphen Microsoft account">Sign in</button>
+        <button id="signOutButton" class="mainButton hidden" title="Sign out of this environment">Sign out</button>
+    </div>
+    <div class="fullCenter">
         <button id="liToJsonButton" class="mainButton disabled toggle" title="Export profile to JSON Resume">LinkedIn Profile to JSON</button>
         <button id="liToJsonDownloadButton" class="mainButton emojiButton disabled toggle" title="Download JSON Resume Export">💾</button>
         <button id="debugCheckButton" class="mainButton emojiButton">🔄</button>
@@ -30,7 +35,7 @@
         <div class="flex">
             <div class="apiSelectWrapper">
                 <label>
-                    API endpoint:
+                    Environment:
                 </label>
                 <select id="apiSelect" class="apiSelect toggle">
                     <option value="none">None</option>

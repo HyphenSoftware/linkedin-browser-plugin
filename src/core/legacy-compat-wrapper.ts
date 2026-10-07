@@ -9,7 +9,6 @@
  */
 
 import { LinkedInExtractor, ExtractorOptions } from './linkedin-extractor';
-import { sendToApi } from '../utilities';
 
 /**
  * Legacy API wrapper class that mimics the old LinkedinToResumeJson constructor function
@@ -26,8 +25,6 @@ export class LinkedinToResumeJsonCompat {
     public lastScannedLocale: string | null = null;
 
     public preferLocale: string | null = null;
-
-    public apiEndpoint: string | null = null;
 
     public scannedPageUrl: string = '';
 
@@ -96,41 +93,19 @@ export class LinkedinToResumeJsonCompat {
     }
 
     /**
-     * Parse profile and send to API
+     * Parse the profile into the JSON Resume the import endpoint expects
      */
-    async parseAndSendToApi(url: string, entity: string = 'subcontractor', version: 'legacy' | 'stable' = 'stable', mode: 'auto' | 'create' | 'update' = 'auto'): Promise<any> {
-        try {
-            const result = await this.extractor.extractProfile();
-
-            if (result.success) {
-                this.parseSuccess = true;
-                this.profileParseSummary = result.summary;
-                this.lastScannedLocale = result.locale;
-                this.profileUrnId = result.profileUrnId || null;
-                this.apiEndpoint = url;
-
-                // Get the appropriate JSON format
-                const jsonData = version === 'legacy' ? result.legacy : result.stable;
-
-                // Wrap in payload object with entity type (as expected by the API).
-                // `mode` lets the popup force create vs update (e.g. on a name-only "possible match").
-                const payload = {
-                    entity,
-                    mode,
-                    data: jsonData
-                };
-
-                // Send to API using the utility function
-                // Note: sendToApi signature is (data, endpoint)
-                return await sendToApi(JSON.stringify(payload, null, 2), url);
-            }
+    async extractForApi(version: 'legacy' | 'stable' = 'stable'): Promise<any> {
+        const result = await this.extractor.extractProfile();
+        if (!result.success) {
             this.parseSuccess = false;
             throw new Error(result.error || 'Profile extraction failed');
-        } catch (error) {
-            this.parseSuccess = false;
-            console.error('Error in parseAndSendToApi:', error);
-            throw error;
         }
+        this.parseSuccess = true;
+        this.profileParseSummary = result.summary;
+        this.lastScannedLocale = result.locale;
+        this.profileUrnId = result.profileUrnId || null;
+        return version === 'legacy' ? result.legacy : result.stable;
     }
 
     /**
@@ -186,72 +161,13 @@ export class LinkedinToResumeJsonCompat {
     }
 
     /**
-     * Check if profile exists (for API integration)
+     * What the lookup endpoint matches on: the durable member URN first, then the URL, then the name
      */
-    async checkProfileExists(checkUrl: string): Promise<any> {
-        try {
-            const currentUrl = window.location.href.split('?')[0];
-
-            // Resolve the durable member URN + name so the backend can match by stable id
-            // (and fall back to a name-based possible match) instead of the unstable vanity URL.
-            const { urn, name } = await this.extractor.resolveIdentity();
-
-            this.debugConsole.log('Checking profile with:', {
-                currentUrl,
-                checkUrl,
-                urn,
-                name
-            });
-
-            const response = await fetch(checkUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ url: currentUrl, name, id: urn })
-            });
-
-            if (!response.ok) {
-                const errorMessage = `Failed to check profile status: ${response.status} ${response.statusText}`;
-                this.debugConsole.error(errorMessage);
-
-                // Send message to extension if available
-                if (typeof chrome !== 'undefined' && chrome.runtime) {
-                    chrome.runtime.sendMessage({
-                        key: 'profileCheckResult',
-                        value: { error: errorMessage }
-                    });
-                }
-
-                return { error: errorMessage };
-            }
-
-            const data = await response.json();
-            this.debugConsole.log('Profile check response:', data);
-
-            // Send result back to popup if extension available
-            if (typeof chrome !== 'undefined' && chrome.runtime) {
-                chrome.runtime.sendMessage({
-                    key: 'profileCheckResult',
-                    value: data
-                });
-            }
-
-            return data;
-        } catch (error: any) {
-            const errorMessage = `Network error: ${error.message}`;
-            this.debugConsole.error('Error checking profile status:', error);
-
-            if (typeof chrome !== 'undefined' && chrome.runtime) {
-                chrome.runtime.sendMessage({
-                    key: 'profileCheckResult',
-                    value: { error: errorMessage }
-                });
-            }
-
-            return { error: errorMessage };
-        }
+    async getIdentityForApi(): Promise<{ url: string; urn: string | null; name: string | null }> {
+        const url = window.location.href.split('?')[0];
+        const { urn, name } = await this.extractor.resolveIdentity();
+        this.debugConsole.log('Identity for API:', { url, urn, name });
+        return { url, urn, name };
     }
 
     /**

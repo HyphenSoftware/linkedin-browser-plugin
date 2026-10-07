@@ -1,9 +1,0 @@
-[{
-    "name": "DEV",
-    "importUrl": "https://url-of-the-dev-endpoint",
-    "checkUrl": "https://url-of-the-dev-endpoint"
-},{
-    "name": "PROD",
-    "importUrl": "https://url-of-the-prod-endpoint",
-    "checkUrl": "https://url-of-the-prod-endpoint"
-}]

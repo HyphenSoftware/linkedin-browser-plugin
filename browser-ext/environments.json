@@ -1,0 +1,16 @@
+[
+    {
+        "name": "DEV",
+        "apiBaseUrl": "https://ha-dev-core-service.azurewebsites.net",
+        "tenantId": "7f2175e9-c158-4ad1-8bdf-86649cdb5314",
+        "clientId": "<client id of LinkedIn Importer - dev>",
+        "scope": "api://7f2175e9-c158-4ad1-8bdf-86649cdb5314/linkedin-importer-dev/LinkedIn.Import"
+    },
+    {
+        "name": "PROD",
+        "apiBaseUrl": "https://ha-prod-core-service.azurewebsites.net",
+        "tenantId": "7f2175e9-c158-4ad1-8bdf-86649cdb5314",
+        "clientId": "<client id of LinkedIn Importer - prod>",
+        "scope": "api://7f2175e9-c158-4ad1-8bdf-86649cdb5314/linkedin-importer-prod/LinkedIn.Import"
+    }
+]

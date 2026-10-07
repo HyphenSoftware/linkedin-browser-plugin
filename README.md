@@ -90,8 +90,10 @@ There are several main buttons in the browser extension, with different effects.
      - There are some caveats with this format; see below
 
 
-### API Endpoint Settings
-Go into the folder browser-ext, create a copy of endpoints-example.json and rename it to endpoints.json. Then, edit the file to add your own API endpoints. You can add as many as you want, and then select which one to use from the dropdown in the browser extension popup.
+### Environments and Sign-in
+The popup's *Environment* dropdown lists the entries of `browser-ext/environments.json` (DEV, PROD): the core-service base URL and the Entra tenant, client ID and scope of that environment's `LinkedIn Importer` app registration. Click *Sign in* and use your Hyphen Microsoft account; only users assigned to the app registration can sign in. Lookups and imports run in the extension's background worker with your token, so you can close the popup while an import runs; the result appears as an alert in the LinkedIn tab.
+
+The `key` in `manifest.json` pins the extension ID (`efifbophjnknlkgbpdiodmkaiiaeifod`), which the app registrations' redirect URI depends on. Don't remove or change it.
 
 ### Chrome Side-loading Instructions
 Instead of installing from the Chrome Webstore, you might might want to "side-load" a ZIP build for either local development, or to try out a new release that has not yet made it through the Chrome review process. Here are the instructions for doing so:

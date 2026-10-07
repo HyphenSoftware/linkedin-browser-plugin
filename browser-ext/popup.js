@@ -10,8 +10,8 @@
 /**
  * @typedef {Object} LinkedinToResumeJson
  * @property {string} preferLocale - The preferred locale for the resume
- * @property {string} apiEndpoint - The API endpoint for sending data
- * @property {function(string, string): void} parseAndSendToApi - Function to parse and send data to API
+ * @property {function(string): Promise<Object>} extractForApi - Function to parse the profile into a JSON Resume
+ * @property {function(): Promise<{url: string, urn: string | null, name: string | null}>} getIdentityForApi - Function to get what the lookup matches on
  * @property {function(): void} parseAndDownload - Function to parse and download data
  * @property {function(string): void} parseAndShowOutput - Function to parse and show output
  * @property {function(): Promise<string[]>} getSupportedLocales - Function to get supported locales
@@ -39,15 +39,15 @@ const getSelectedLang = () => {
 };
 
 /**
- * Get the currently selected API endpoint from the selector
- * @returns {{importUrl: string, checkUrl: string} | null}
+ * Get the name of the currently selected environment from the selector
+ * @returns {string | null}
  */
-const getSelectedAPIEndpoint = () => {
+const getSelectedEnvironment = () => {
     const { value } = API_SELECT;
     if (!value || value === 'none') {
         return null;
     }
-    return JSON.parse(value);
+    return value;
 };
 
 /**
@@ -91,26 +91,43 @@ const loadLangs = (langs) => {
 };
 
 /**
- * Load list of API endpoints to be displayed as options
- * @param {Object[]} apiEndpoints - api endpoints
- * @param {string} apiEndpoints[].name - name of the endpoint
- * @param {string} apiEndpoints[].importUrl - URL for import
- * @param {string} apiEndpoints[].checkUrl - URL for checking profile
+ * Load list of environments to be displayed as options
+ * @param {{name: string}[]} environments
  */
-const loadApiEndpoints = (apiEndpoints) => {
+const loadEnvironments = (environments) => {
     API_SELECT.innerHTML = '';
-    apiEndpoints.forEach((endpoint) => {
-        if (endpoint && endpoint.name) {
+    environments.forEach((environment) => {
+        if (environment && environment.name) {
             const option = document.createElement('option');
-            option.value = JSON.stringify({
-                importUrl: endpoint.importUrl,
-                checkUrl: endpoint.checkUrl
-            });
-            option.innerText = endpoint.name;
+            option.value = environment.name;
+            option.innerText = environment.name;
             API_SELECT.appendChild(option);
         }
     });
-    toggleEnabled(apiEndpoints.length > 0);
+    toggleEnabled(environments.length > 0);
+};
+
+const fetchEnvironments = () => fetch(chrome.runtime.getURL('./environments.json')).then((response) => response.json());
+
+/**
+ * Show who is signed in to the selected environment
+ * @param {{name?: string, preferred_username?: string} | null} account
+ */
+const showAccount = (account) => {
+    document.getElementById('accountStatus').textContent = account ? `Signed in as ${account.name || account.preferred_username}` : 'Not signed in';
+    document.getElementById('signInButton').classList.toggle('hidden', !!account);
+    document.getElementById('signOutButton').classList.toggle('hidden', !account);
+};
+
+const sendToBackground = (message) => chrome.runtime.sendMessage({ environment: getSelectedEnvironment(), ...message });
+
+const refreshAccount = async () => {
+    if (!getSelectedEnvironment()) {
+        showAccount(null);
+        return;
+    }
+    const response = await sendToBackground({ type: 'account' });
+    showAccount(response?.account || null);
 };
 
 /**
@@ -126,23 +143,6 @@ const setLang = (lang) => {
                 window.liToJrInstance.preferLocale = langValue;
             },
             args: [lang]
-        });
-    });
-};
-
-/**
- * Set the desired API endpoint on the exporter instance
- * - Use `null` to unset
- * @param {string | null} endpoint
- */
-const setApiEndpoint = (endpoint) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            func: (endpointValue) => {
-                window.liToJrInstance.apiEndpoint = endpointValue?.importUrl || null;
-            },
-            args: [endpoint]
         });
     });
 };
@@ -329,6 +329,31 @@ const buildEntityStatusHtml = (entityStatus, label) => {
 };
 
 /**
+ * Look the open profile up in Airtable and show the result
+ */
+const checkProfile = async () => {
+    if (!getSelectedEnvironment()) {
+        updateProfileStatus({ subcontractor: false, contact: false });
+        return;
+    }
+    updateProfileStatus('loading');
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [identityResult] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.liToJrInstance.getIdentityForApi()
+    });
+    const response = await sendToBackground({ type: 'lookup', identity: identityResult.result });
+    if (response?.status === 200) {
+        updateProfileStatus(response.body);
+    } else if (response?.status === 401 || response?.status === 403) {
+        updateProfileStatus({ error: 'Sign in to check this profile' });
+    } else {
+        updateProfileStatus({ error: response?.error || response?.body?.message || `Profile check failed (HTTP ${response?.status})` });
+    }
+    refreshAccount();
+};
+
+/**
  * =============================
  * =   Setup Event Listeners   =
  * =============================
@@ -345,12 +370,9 @@ chrome.runtime.onMessage.addListener((message, sender) => {
         supported.unshift(user);
         loadLangs(supported);
 
-        const url = chrome.runtime.getURL('./endpoints.json');
-        fetch(url)
-            .then((response) => response.json())
-            .then((json) => loadApiEndpoints(json));
-    } else if (sender.id === extensionId && message.key === 'profileCheckResult') {
-        updateProfileStatus(message.value);
+        fetchEnvironments().then((json) => loadEnvironments(json));
+    } else if (sender.id === extensionId && message.key === 'importResult') {
+        showLoader(false);
     }
 });
 
@@ -376,26 +398,31 @@ document.getElementById('liToJsonButton').addEventListener('click', async () => 
 });
 
 /**
- * Extract the profile and send it to the import endpoint for the given entity and action.
+ * Extract the profile and hand it to the background worker, which imports it and shows the
+ * result in the LinkedIn tab, so closing the popup doesn't cancel the import.
  * @param {'subcontractor' | 'contact'} entity
  * @param {'auto' | 'create' | 'update'} mode
  */
-const sendImport = (entity, mode) => {
+const sendImport = async (entity, mode) => {
+    if (!getSelectedEnvironment()) {
+        return;
+    }
     showLoader(true);
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting
-            .executeScript({
-                target: { tabId: tabs[0].id },
-                func: (lang, endpoint, entityArg, modeArg) => {
-                    window.liToJrInstance.preferLocale = lang;
-                    return window.liToJrInstance.parseAndSendToApi(endpoint.importUrl, entityArg, 'stable', modeArg);
-                },
-                args: [getSelectedLang(), getSelectedAPIEndpoint(), entity, mode]
-            })
-            .then(() => {
-                showLoader(false);
-            });
-    });
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const [resumeResult] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: (lang) => {
+                window.liToJrInstance.preferLocale = lang;
+                return window.liToJrInstance.extractForApi('stable');
+            },
+            args: [getSelectedLang()]
+        });
+        await sendToBackground({ type: 'import', tabId: tab.id, entity, mode, resume: resumeResult.result });
+    } catch (error) {
+        console.error(error);
+        showLoader(false);
+    }
 };
 
 document.getElementById('liToSubcontractor').addEventListener('click', (e) => {
@@ -426,15 +453,18 @@ document.getElementById('liToJsonDownloadButton').addEventListener('click', () =
 });
 
 document.getElementById('debugCheckButton').addEventListener('click', () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            func: (endpoint) => {
-                window.liToJrInstance.checkProfileExists(endpoint.checkUrl);
-            },
-            args: [getSelectedAPIEndpoint()]
-        });
-    });
+    checkProfile();
+});
+
+document.getElementById('signInButton').addEventListener('click', async () => {
+    const response = await sendToBackground({ type: 'signIn' });
+    showAccount(response?.account || null);
+    checkProfile();
+});
+
+document.getElementById('signOutButton').addEventListener('click', async () => {
+    await sendToBackground({ type: 'signOut' });
+    showAccount(null);
 });
 
 LANG_SELECT.addEventListener('change', () => {
@@ -442,26 +472,8 @@ LANG_SELECT.addEventListener('change', () => {
 });
 
 API_SELECT.addEventListener('change', () => {
-    const selectedEndpoint = getSelectedAPIEndpoint();
-    setApiEndpoint(selectedEndpoint);
-    // Check profile status when API endpoint changes
-    if (selectedEndpoint) {
-        // Show loading state in popup
-        updateProfileStatus('loading');
-        chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
-            chrome.scripting.executeScript({
-                target: { tabId: activeTabs[0].id },
-                func: (endpoint) => {
-                    // Only execute the profile check in content script
-                    window.liToJrInstance.checkProfileExists(endpoint.checkUrl);
-                },
-                args: [selectedEndpoint]
-            });
-        });
-    } else {
-        // If no endpoint is selected, reset the UI
-        updateProfileStatus({ subcontractor: false, contact: false });
-    }
+    refreshAccount();
+    checkProfile();
 });
 
 SPEC_SELECT.addEventListener('change', () => {
@@ -542,38 +554,13 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                                 }
                             });
 
-                        // Load API endpoints
-                        const url = chrome.runtime.getURL('./endpoints.json');
-                        fetch(url)
-                            .then((response) => response.json())
-                            .then((json) => {
-                                console.log('Loaded API endpoints:', json);
-                                loadApiEndpoints(json);
-                                // Check profile status after loading endpoints
-                                if (API_SELECT.value) {
-                                    console.log('Initial API endpoint selected:', API_SELECT.value);
-                                    // Add a small delay to ensure the UI is ready
-                                    setTimeout(() => {
-                                        const selectedEndpoint = getSelectedAPIEndpoint();
-                                        if (selectedEndpoint) {
-                                            // Show loading state in popup
-                                            updateProfileStatus('loading');
-                                            chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
-                                                chrome.scripting.executeScript({
-                                                    target: { tabId: activeTabs[0].id },
-                                                    func: (endpoint) => {
-                                                        // Only execute the profile check in content script
-                                                        window.liToJrInstance.checkProfileExists(endpoint.checkUrl);
-                                                    },
-                                                    args: [selectedEndpoint]
-                                                });
-                                            });
-                                        }
-                                    }, 100);
-                                } else {
-                                    console.log('No initial API endpoint selected');
-                                }
-                            });
+                        fetchEnvironments().then((json) => {
+                            loadEnvironments(json);
+                            refreshAccount();
+                            if (getSelectedEnvironment()) {
+                                checkProfile();
+                            }
+                        });
                     }
                 });
         });

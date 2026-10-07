@@ -10,7 +10,16 @@ global.chrome = {
             addListener: jest.fn(),
             removeListener: jest.fn(),
             hasListener: jest.fn()
-        }
+        },
+        onInstalled: {
+            addListener: jest.fn()
+        },
+        sendMessage: jest.fn(() => Promise.resolve()),
+        getPlatformInfo: jest.fn(() => Promise.resolve({}))
+    },
+    identity: {
+        getRedirectURL: jest.fn(() => 'https://test-extension-id.chromiumapp.org/'),
+        launchWebAuthFlow: jest.fn()
     },
     tabs: {
         query: jest.fn(),
@@ -23,6 +32,11 @@ global.chrome = {
         sync: {
             get: jest.fn(),
             set: jest.fn()
+        },
+        session: {
+            get: jest.fn(),
+            set: jest.fn(),
+            remove: jest.fn()
         }
     },
     declarativeContent: {

@@ -46,10 +46,6 @@ This directory contains automated workflows for the LinkedIn Profile Extractor p
 
 Before using the workflows, complete these one-time setup steps:
 
-- [ ] **Set up `ENDPOINTS_JSON` secret** (Required for builds)
-  - Follow the guide in [SECRETS-SETUP.md](./SECRETS-SETUP.md)
-  - This contains your API endpoint URLs
-  
 - [ ] **Set up `CODECOV_TOKEN` secret** (Optional for test coverage)
   - Only needed if you want coverage reports on codecov.io
   
@@ -122,9 +118,7 @@ The artifact will be available in the workflow run for download.
 
 ### For Build Workflow
 
-The build workflow requires:
-- **`ENDPOINTS_JSON`** (Required) - Contains API endpoint configuration
-  - See [SECRETS-SETUP.md](./SECRETS-SETUP.md) for detailed setup instructions
+The build workflow needs no secrets: users sign in with Entra, and `browser-ext/environments.json` is committed.
 
 ### For Test Workflow
 
@@ -132,8 +126,6 @@ The test workflow optionally uses:
 - **`CODECOV_TOKEN`** (Optional) - For uploading coverage reports to Codecov
   - Get from [codecov.io](https://codecov.io)
   - If not set, workflow continues without uploading coverage
-
-**⚠️ Important:** Before running the build workflow for the first time, you must set up the `ENDPOINTS_JSON` secret. See [SECRETS-SETUP.md](./SECRETS-SETUP.md) for step-by-step instructions.
 
 ---
 

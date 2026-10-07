@@ -176,12 +176,12 @@ Available DOM Methods (2):
 
 **Objective**: Verify sending to API works
 
-**Prerequisites**: Have `browser-ext/endpoints.json` configured
+**Prerequisites**: Signed in to the selected environment (*Sign in* button in the popup)
 
 **Steps**:
 1. Navigate to a profile
 2. Open extension popup
-3. Select an API endpoint from dropdown
+3. Select an environment from the dropdown
 4. Click "Add as Subcontractor" or "Add as Contact"
 5. Check for success/error message
 

@@ -33,19 +33,6 @@ jobs:
     - name: Run tests
       run: npm test
     
-    - name: Create endpoints.json from secret
-      run: |
-        echo '${{ secrets.ENDPOINTS_JSON }}' > browser-ext/endpoints.json
-      shell: bash
-    
-    - name: Verify endpoints.json was created
-      run: |
-        if [ ! -f browser-ext/endpoints.json ]; then
-          echo "Error: endpoints.json was not created"
-          exit 1
-        fi
-        echo "endpoints.json created successfully"
-    
     - name: Build and package extension
       run: npm run package:browserext
     
