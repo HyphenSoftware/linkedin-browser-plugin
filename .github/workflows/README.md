@@ -25,8 +25,8 @@ This directory contains automated workflows for the LinkedIn Profile Extractor p
 ### 📦 Build Extension Workflow (`build-extension.yml`)
 
 **Triggers:**
-- **Tag push:** When you push a tag starting with `v` (e.g., `v1.1.0`)
-- **Manual trigger:** Via GitHub Actions UI with optional release creation
+- **Push** to `linkedin-to-api-ts`
+- **Manual trigger:** Via GitHub Actions UI
 
 **What it does:**
 1. Runs full test suite first
@@ -34,13 +34,13 @@ This directory contains automated workflows for the LinkedIn Profile Extractor p
 3. Extracts version from `package.json`
 4. Creates a zip file named `build_[version].zip` in `webstore-zips/`
 5. Uploads the zip as a GitHub Actions artifact (retained for 90 days)
-6. **If triggered by tag:** Creates a draft GitHub release with the zip file
+6. **On `linkedin-to-api-ts` only:** drafts the release `v[version]` with the zip and auto-generated release notes. If that draft already exists, it replaces the zip and points the draft at the new commit. If `v[version]` is already published, it skips this step until the version in `package.json` is bumped.
 
 **Output:**
 - Artifact: `browser-extension-[version]` containing `build_[version].zip`
-- Release: Draft release with auto-generated release notes (for tags only)
+- Release: Draft release `v[version]`
 
-Publishing the draft (not as a pre-release) is what rolls the update out: the popup checks the latest published release and, when its tag is newer than the installed version, shows an update banner with a link to its zip. Users see it within an hour.
+Publishing the draft (not as a pre-release) is the only manual step. GitHub then creates the `v[version]` tag on the draft's commit, and the update rolls out: the popup checks the latest published release and, when its tag is newer than the installed version, shows an update banner with a link to its zip. Users see it within an hour.
 
 ---
 
@@ -72,31 +72,25 @@ git push origin feature/my-feature
 
 ### Building the Extension
 
-#### Option 1: Create a Git Tag (Recommended for releases)
+#### Releasing a New Version
 
 ```bash
-# Update version in package.json first
-npm version patch  # or minor, or major
-
-# Push the tag
-git push origin v1.1.0
-
-# This will:
-# 1. Run tests
-# 2. Build extension
-# 3. Create build_1.1.0.zip
-# 4. Create draft GitHub release
+# Bump the version in package.json without creating a tag
+npm version patch --no-git-tag-version  # or minor, or major
+git commit -am "chore: release 1.1.0"
+git push origin linkedin-to-api-ts
 ```
 
-#### Option 2: Manual Trigger (Testing/Development)
+The workflow drafts the release `v1.1.0`. Later pushes before publishing update that draft. Review it under **Releases** and publish it.
+
+#### Manual Trigger (Testing/Development)
 
 1. Go to the **Actions** tab on GitHub
 2. Select **"Build Browser Extension"** workflow
 3. Click **"Run workflow"**
-4. Choose branch and optionally enable "Create a GitHub release"
-5. Click **"Run workflow"**
+4. Choose a branch and click **"Run workflow"**
 
-The artifact will be available in the workflow run for download.
+The artifact will be available in the workflow run for download. Only runs on `linkedin-to-api-ts` touch the draft release.
 
 ---
 
@@ -111,7 +105,7 @@ The artifact will be available in the workflow run for download.
 ### `build-extension.yml`
 - **Purpose:** Build production-ready extension package
 - **Output:** `webstore-zips/build_[version].zip`
-- **Release:** Creates draft releases for tags
+- **Release:** Creates or updates the draft release for the version in `package.json`
 - **Artifact Retention:** 90 days
 
 ---
@@ -158,8 +152,8 @@ ls -la webstore-zips/
 ### Release Not Created
 
 **Checklist:**
-- [ ] Did you push a tag starting with `v`?
-- [ ] Does the tag match the version in `package.json`?
+- [ ] Did you push to `linkedin-to-api-ts`?
+- [ ] Is the version in `package.json` higher than the last published release? The run shows a notice when it isn't.
 - [ ] Did the build workflow complete successfully?
 - [ ] Check the Actions tab for any errors
 
@@ -197,7 +191,7 @@ The workflow uses auto-generated release notes. To customize, edit the release c
 - ✅ Check workflow status in the PR
 
 ### For Maintainers
-- ✅ Use semantic versioning for tags (`v1.2.3`)
+- ✅ Use semantic versioning in `package.json` (`1.2.3`)
 - ✅ Review and publish draft releases after testing
 - ✅ Download artifacts from Actions for manual testing
 - ✅ Keep Node versions in matrix up to date
