@@ -12,10 +12,6 @@ const loadPopup = () => {
     const style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
-
-    const status = document.createElement('div');
-    status.id = 'profileStatus';
-    document.body.insertBefore(status, document.querySelector('.fullCenter'));
 };
 
 const isVisible = (element: Element | null): boolean => {
@@ -27,8 +23,8 @@ const isVisible = (element: Element | null): boolean => {
 
 const byId = (id: string) => document.getElementById(id);
 
-const API_ONLY = ['debugCheckButton', 'liToSubcontractor', 'liToContact', 'profileStatus'];
-const ALWAYS = ['liToJsonButton', 'liToJsonDownloadButton', 'apiSelect', 'specSelect'];
+const API_ONLY = ['debugCheckButton', 'liToSubcontractor', 'liToContact', 'subcontractorStatus', 'contactStatus'];
+const ALWAYS = ['liToJsonButton', 'liToJsonDownloadButton', 'apiSelect'];
 
 describe('popup account view', () => {
     beforeEach(loadPopup);
@@ -53,6 +49,7 @@ describe('popup account view', () => {
 
         expect(byId('accountStatus')?.textContent).toBe('Signed in as Jane Doe');
         expect(isVisible(byId('signInButton'))).toBe(false);
+        expect(isVisible(document.querySelector('.signedOutOnly'))).toBe(false);
         expect(isVisible(byId('signOutButton'))).toBe(true);
         [...API_ONLY, ...ALWAYS].forEach((id) => expect(isVisible(byId(id))).toBe(true));
     });

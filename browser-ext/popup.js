@@ -10,8 +10,6 @@ import { checkForUpdate, showUpdate } from './update-check.js';
  * =============================
  */
 
-/** @typedef {'legacy' | 'stable' | 'beta'} SchemaVersion */
-
 /**
  * @typedef {Object} LinkedinToResumeJson
  * @property {string} preferLocale - The preferred locale for the resume
@@ -19,29 +17,13 @@ import { checkForUpdate, showUpdate } from './update-check.js';
  * @property {function(): Promise<{url: string, urn: string | null, name: string | null}>} getIdentityForApi - Function to get what the lookup matches on
  * @property {function(): void} parseAndDownload - Function to parse and download data
  * @property {function(string): void} parseAndShowOutput - Function to parse and show output
- * @property {function(): Promise<string[]>} getSupportedLocales - Function to get supported locales
  * @property {function(): string} getViewersLocalLang - Function to get viewer's local language
  */
 
 const extensionId = chrome.runtime.id;
 
-const STORAGE_KEYS = {
-    schemaVersion: 'schemaVersion'
-};
-const SPEC_SELECT = /** @type {HTMLSelectElement} */ (document.getElementById('specSelect'));
-/** @type {SchemaVersion[]} */
-const SPEC_OPTIONS = ['legacy', 'stable', 'beta'];
-/** @type {HTMLSelectElement} */
-const LANG_SELECT = document.querySelector('.langSelect');
 /** @type {HTMLSelectElement} */
 const API_SELECT = document.querySelector('.apiSelect');
-
-/**
- * Get the currently selected lang locale in the selector
- */
-const getSelectedLang = () => {
-    return LANG_SELECT.value;
-};
 
 /**
  * Get the name of the currently selected environment from the selector
@@ -67,33 +49,19 @@ const toggleEnabled = (isEnabled) => {
 };
 
 /**
- * Toggle loader while doing API requests
- * @param {boolean} isEnabled
+ * Show a spinner in place of the button's label while its action runs
+ * @param {HTMLElement} button
+ * @param {boolean} isBusy
  */
-const showLoader = (isEnabled) => {
-    document.querySelectorAll('.loader').forEach((elem) => {
-        if (isEnabled) {
-            elem.classList.remove('hidden');
-        } else {
-            elem.classList.add('hidden');
-        }
-    });
+const setBusy = (button, isBusy) => {
+    if (isBusy) {
+        button.setAttribute('aria-busy', 'true');
+    } else {
+        button.removeAttribute('aria-busy');
+    }
 };
 
-/**
- * Load list of language strings to be displayed as options
- * @param {string[]} langs
- */
-const loadLangs = (langs) => {
-    LANG_SELECT.innerHTML = '';
-    langs.forEach((lang) => {
-        const option = document.createElement('option');
-        option.value = lang;
-        option.innerText = lang;
-        LANG_SELECT.appendChild(option);
-    });
-    toggleEnabled(langs.length > 0);
-};
+const clearImportBusy = () => document.querySelectorAll('.entityActions .button').forEach((button) => setBusy(button, false));
 
 /**
  * Load list of environments to be displayed as options
@@ -135,73 +103,15 @@ const refreshAccount = async () => {
 };
 
 /**
- * Set the desired export lang on the exporter instance
- * - Use `null` to unset
- * @param {string | null} lang
- */
-const setLang = (lang) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            func: (langValue) => {
-                window.liToJrInstance.preferLocale = langValue;
-            },
-            args: [lang]
-        });
-    });
-};
-
-/** @param {SchemaVersion} version */
-const setSpecVersion = (version) => {
-    chrome.storage.sync.set({
-        [STORAGE_KEYS.schemaVersion]: version
-    });
-};
-
-/**
- * Get user's preference for JSONResume Spec Version
- * @returns {Promise<SchemaVersion>}
- */
-const getSpecVersion = () => {
-    // Fallback value will be what is already selected in dropdown
-    const fallbackVersion = /** @type {SchemaVersion} */ (SPEC_SELECT.value);
-    return new Promise((res) => {
-        try {
-            chrome.storage.sync.get([STORAGE_KEYS.schemaVersion], (result) => {
-                const storedSetting = result[STORAGE_KEYS.schemaVersion] || '';
-                if (SPEC_OPTIONS.includes(storedSetting)) {
-                    res(storedSetting);
-                } else {
-                    res(fallbackVersion);
-                }
-            });
-        } catch (err) {
-            console.error(err);
-            res(fallbackVersion);
-        }
-    });
-};
-
-/**
- * Update the UI to show profile status
- * @param {{subcontractor: object, contact: object, error?: string} | 'loading'} status
- */
-// Button background by match state: green = exists, amber = possible name match, red = not found.
-const BUTTON_COLOR_EXISTS = '#4CAF50';
-const BUTTON_COLOR_POSSIBLE = '#FF9800';
-const BUTTON_COLOR_NOT_FOUND = '#f44336';
-const BUTTON_COLOR_NEUTRAL = '#607d8b'; // secondary action (e.g. "Create new" on a possible match)
-
-/**
  * Configure an entity's action buttons from its precheck status. The chosen action is stored on
  * each button's `dataset.mode` ('create' | 'update' | 'auto') and read by the click handler.
- *  - not found     -> primary "Create new {label}" (mode=create)
- *  - perfect match -> primary "Update {label}"      (mode=update)
+ *  - not found     -> primary "Create {label}"     (mode=create)
+ *  - perfect match -> primary "Update {label}"     (mode=update)
  *  - possible match-> primary "Update {label}" (mode=update) + secondary "Create new {label}" (mode=create)
  * @param {string} primaryId
  * @param {string} altId
  * @param {{exists?: boolean, possibleMatch?: boolean}} entityStatus
- * @param {string} label - display label, e.g. "Subcontractor"
+ * @param {string} label - display label, e.g. "subcontractor"
  */
 const applyEntityButton = (primaryId, altId, entityStatus, label) => {
     const primary = document.getElementById(primaryId);
@@ -215,27 +125,23 @@ const applyEntityButton = (primaryId, altId, entityStatus, label) => {
 
     if (entityStatus && entityStatus.exists) {
         primary.dataset.mode = 'update';
-        primary.style.backgroundColor = BUTTON_COLOR_EXISTS;
         primary.textContent = `Update ${label}`;
-        primary.title = `${label} exists — update it`;
+        primary.title = `The ${label} exists, update it`;
     } else if (entityStatus && entityStatus.possibleMatch) {
         primary.dataset.mode = 'update';
-        primary.style.backgroundColor = BUTTON_COLOR_POSSIBLE;
         primary.textContent = `Update ${label}`;
-        primary.title = `Possible match by name — update the existing ${label}`;
+        primary.title = `Possible match by name, update the existing ${label}`;
         if (alt) {
             alt.classList.remove('hidden');
             alt.dataset.mode = 'create';
-            alt.style.backgroundColor = BUTTON_COLOR_NEUTRAL;
             alt.textContent = `Create new ${label}`;
             alt.title = `Not the same person? Create a new ${label} instead`;
             alt.disabled = false;
         }
     } else {
         primary.dataset.mode = 'create';
-        primary.style.backgroundColor = BUTTON_COLOR_NOT_FOUND;
         primary.textContent = `Create ${label}`;
-        primary.title = `${label} not found — create new`;
+        primary.title = `No ${label} found, create a new one`;
     }
     primary.disabled = false;
 };
@@ -243,93 +149,100 @@ const applyEntityButton = (primaryId, altId, entityStatus, label) => {
 const setButtonLoading = (id) => {
     const btn = document.getElementById(id);
     if (btn) {
-        btn.style.backgroundColor = '#808080';
         btn.title = 'Checking profile status...';
         btn.disabled = true;
     }
 };
 
+/**
+ * @param {{exists?: boolean, possibleMatch?: boolean} | false | null | undefined | 'loading'} entityStatus
+ * @returns {{state: string, text: string}}
+ */
+const getEntityState = (entityStatus) => {
+    if (entityStatus === 'loading') {
+        return { state: 'loading', text: 'checking...' };
+    }
+    if (entityStatus === null || entityStatus === undefined) {
+        return { state: '', text: '' };
+    }
+    if (entityStatus.exists) {
+        return { state: 'exists', text: 'exists' };
+    }
+    if (entityStatus.possibleMatch) {
+        return { state: 'possibleMatch', text: 'possible match by name, please verify' };
+    }
+    return { state: 'notFound', text: 'not found' };
+};
+
+/**
+ * Show one entity's lookup result in its card
+ * @param {string} id - id of the card's status block
+ * @param {object | false | null | undefined | 'loading'} entityStatus
+ */
+const renderEntityStatus = (id, entityStatus) => {
+    const container = document.getElementById(id);
+    const { state, text } = getEntityState(entityStatus);
+    container.querySelector('.marker').className = `marker ${state}`;
+    const stateElement = container.querySelector('.entityState');
+    stateElement.className = `entityState ${state}`;
+    stateElement.textContent = text;
+
+    const details = container.querySelector('.entityDetails');
+    details.replaceChildren();
+    if (state !== 'exists' && state !== 'possibleMatch') {
+        return;
+    }
+    const facts = [];
+    if (entityStatus.lastImported) {
+        facts.push(`Last imported ${entityStatus.lastImported}`);
+    }
+    if (entityStatus.lastContacted) {
+        facts.push(`Last contacted ${entityStatus.lastContacted} by ${entityStatus.lastContactedBy?.name || 'unknown'}`);
+    }
+    if (facts.length) {
+        const line = document.createElement('div');
+        line.textContent = facts.join(' · ');
+        details.appendChild(line);
+    }
+    if (entityStatus.multipleProfiles) {
+        const warning = document.createElement('div');
+        warning.className = 'entityWarning';
+        warning.textContent = 'Multiple profiles found for this person';
+        details.appendChild(warning);
+    }
+};
+
+/**
+ * Update the UI to show profile status
+ * @param {{subcontractor: object, contact: object, error?: string} | 'loading' | null} status
+ */
 const updateProfileStatus = (status) => {
     console.log('Updating profile status:', status);
 
-    const subAlt = document.getElementById('liToSubcontractorAlt');
-    const contactAlt = document.getElementById('liToContactAlt');
+    const message = document.getElementById('profileStatus');
+    const error = status && status !== 'loading' ? status.error : null;
+    message.textContent = error || '';
+    message.classList.toggle('hidden', !error);
 
     if (status === 'loading') {
         setButtonLoading('liToSubcontractor');
         setButtonLoading('liToContact');
-        if (subAlt) subAlt.classList.add('hidden');
-        if (contactAlt) contactAlt.classList.add('hidden');
+        document.getElementById('liToSubcontractorAlt').classList.add('hidden');
+        document.getElementById('liToContactAlt').classList.add('hidden');
+        renderEntityStatus('subcontractorStatus', 'loading');
+        renderEntityStatus('contactStatus', 'loading');
     } else if (!status || status.error) {
         // Unknown state: hide the secondary buttons and leave the defaults (auto mode).
-        if (subAlt) subAlt.classList.add('hidden');
-        if (contactAlt) contactAlt.classList.add('hidden');
+        document.getElementById('liToSubcontractorAlt').classList.add('hidden');
+        document.getElementById('liToContactAlt').classList.add('hidden');
+        renderEntityStatus('subcontractorStatus', null);
+        renderEntityStatus('contactStatus', null);
     } else {
-        applyEntityButton('liToSubcontractor', 'liToSubcontractorAlt', status.subcontractor, 'Subcontractor');
-        applyEntityButton('liToContact', 'liToContactAlt', status.contact, 'Contact');
+        applyEntityButton('liToSubcontractor', 'liToSubcontractorAlt', status.subcontractor, 'subcontractor');
+        applyEntityButton('liToContact', 'liToContactAlt', status.contact, 'contact');
+        renderEntityStatus('subcontractorStatus', status.subcontractor);
+        renderEntityStatus('contactStatus', status.contact);
     }
-
-    // Update status text
-    const statusElement = document.getElementById('profileStatus');
-    if (!statusElement) {
-        const statusDiv = document.createElement('div');
-        statusDiv.id = 'profileStatus';
-        statusDiv.className = 'fullCenter';
-        document.body.insertBefore(statusDiv, document.querySelector('.fullCenter'));
-    }
-
-    const statusDiv = document.getElementById('profileStatus');
-    if (status === 'loading') {
-        statusDiv.innerHTML = '<div class="status-indicator loading">Checking profile status...</div>';
-    } else if (status.error) {
-        statusDiv.innerHTML = `<div class="status-indicator error">${status.error}</div>`;
-    } else {
-        const innerHtml = [];
-
-        if (status.subcontractor) {
-            innerHtml.push(buildEntityStatusHtml(status.subcontractor, 'subcontractor'));
-        }
-        if (status.contact) {
-            innerHtml.push(buildEntityStatusHtml(status.contact, 'contact'));
-        }
-
-        statusDiv.innerHTML = innerHtml.join('');
-    }
-};
-
-// Build a status-indicator block for one entity (subcontractor/contact),
-// handling exists (green), possibleMatch (amber name match) and not-found (red).
-const buildEntityStatusHtml = (entityStatus, label) => {
-    let statusClass;
-    let mainStatus;
-    if (entityStatus.exists) {
-        statusClass = 'exists';
-        mainStatus = `Profile exists as ${label}`;
-    } else if (entityStatus.possibleMatch) {
-        statusClass = 'possible-match';
-        mainStatus = `Possible ${label} match by name — please verify`;
-    } else {
-        statusClass = 'not-exists';
-        mainStatus = `${label.charAt(0).toUpperCase()}${label.slice(1)} not found`;
-    }
-
-    let details = '';
-    if (entityStatus.exists || entityStatus.possibleMatch) {
-        details = `<div class="details">
-            ${entityStatus.lastImported ? `Last imported: ${entityStatus.lastImported}` : ''}
-            ${entityStatus.lastContacted ? `<br>Last contacted: ${entityStatus.lastContacted} by ${entityStatus.lastContactedBy?.name || 'Unknown'}` : ''}
-        </div>`;
-    }
-
-    const warning = entityStatus.multipleProfiles ? '<div class="warning">Multiple profiles found for this person</div>' : '';
-
-    return `
-        <div class="status-indicator ${statusClass}">
-            <div class="main-status">${mainStatus}</div>
-            ${details}
-            ${warning}
-        </div>
-    `;
 };
 
 const isProfilePage = (tab) => !!tab?.url?.includes('linkedin.com/in');
@@ -347,17 +260,23 @@ const checkProfile = async () => {
         return;
     }
     updateProfileStatus('loading');
-    const [identityResult] = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => window.liToJrInstance.getIdentityForApi()
-    });
-    const response = await sendToBackground({ type: 'lookup', identity: identityResult.result });
-    if (response?.status === 200) {
-        updateProfileStatus(response.body);
-    } else if (response?.status === 401 || response?.status === 403) {
-        updateProfileStatus({ error: 'Sign in to check this profile' });
-    } else {
-        updateProfileStatus({ error: response?.error || response?.body?.message || `Profile check failed (HTTP ${response?.status})` });
+    const checkButton = document.getElementById('debugCheckButton');
+    setBusy(checkButton, true);
+    try {
+        const [identityResult] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => window.liToJrInstance.getIdentityForApi()
+        });
+        const response = await sendToBackground({ type: 'lookup', identity: identityResult.result });
+        if (response?.status === 200) {
+            updateProfileStatus(response.body);
+        } else if (response?.status === 401 || response?.status === 403) {
+            updateProfileStatus({ error: 'Sign in to check this profile' });
+        } else {
+            updateProfileStatus({ error: response?.error || response?.body?.message || `Profile check failed (HTTP ${response?.status})` });
+        }
+    } finally {
+        setBusy(checkButton, false);
     }
     refreshAccount();
 };
@@ -369,41 +288,28 @@ const checkProfile = async () => {
  */
 
 chrome.runtime.onMessage.addListener((message, sender) => {
-    if (sender.id === extensionId && message.key === 'locales') {
-        /** @type {{supported: string[], user: string}} */
-        const { supported, user } = message.value;
-        // Make sure user's own locale comes as first option
-        if (supported.includes(user)) {
-            supported.splice(supported.indexOf(user), 1);
-        }
-        supported.unshift(user);
-        loadLangs(supported);
-
-        fetchEnvironments().then((json) => loadEnvironments(json));
-    } else if (sender.id === extensionId && message.key === 'importResult') {
-        showLoader(false);
+    if (sender.id === extensionId && message.key === 'importResult') {
+        clearImportBusy();
     }
 });
 
-document.getElementById('liToJsonButton').addEventListener('click', async () => {
-    const versionOption = await getSpecVersion();
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting
-            .executeScript({
-                target: { tabId: tabs[0].id },
-                func: (version) => {
-                    window.liToJrInstance.preferLocale = window.liToJrInstance.getViewersLocalLang();
-                    window.liToJrInstance.parseAndShowOutput(version);
-                },
-                args: [versionOption]
-            })
-            .then(() => {
-                setTimeout(() => {
-                    // Close popup
-                    window.close();
-                }, 700);
-            });
-    });
+document.getElementById('liToJsonButton').addEventListener('click', async (e) => {
+    const button = e.currentTarget;
+    setBusy(button, true);
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+                window.liToJrInstance.preferLocale = window.liToJrInstance.getViewersLocalLang();
+                return window.liToJrInstance.parseAndShowOutput('stable');
+            }
+        });
+        window.close();
+    } catch (error) {
+        console.error(error);
+        setBusy(button, false);
+    }
 });
 
 /**
@@ -411,54 +317,60 @@ document.getElementById('liToJsonButton').addEventListener('click', async () => 
  * result in the LinkedIn tab, so closing the popup doesn't cancel the import.
  * @param {'subcontractor' | 'contact'} entity
  * @param {'auto' | 'create' | 'update'} mode
+ * @param {HTMLElement} button - the clicked button, which shows the spinner until the import is done
  */
-const sendImport = async (entity, mode) => {
+const sendImport = async (entity, mode, button) => {
     if (!getSelectedEnvironment()) {
         return;
     }
-    showLoader(true);
+    setBusy(button, true);
     try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         const [resumeResult] = await chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            func: (lang) => {
-                window.liToJrInstance.preferLocale = lang;
+            func: () => {
+                window.liToJrInstance.preferLocale = window.liToJrInstance.getViewersLocalLang();
                 return window.liToJrInstance.extractForApi('stable');
-            },
-            args: [getSelectedLang()]
+            }
         });
         await sendToBackground({ type: 'import', tabId: tab.id, entity, mode, resume: resumeResult.result });
     } catch (error) {
         console.error(error);
-        showLoader(false);
+        setBusy(button, false);
     }
 };
 
 document.getElementById('liToSubcontractor').addEventListener('click', (e) => {
-    sendImport('subcontractor', e.currentTarget.dataset.mode || 'auto');
+    sendImport('subcontractor', e.currentTarget.dataset.mode || 'auto', e.currentTarget);
 });
 document.getElementById('liToSubcontractorAlt').addEventListener('click', (e) => {
-    sendImport('subcontractor', e.currentTarget.dataset.mode || 'create');
+    sendImport('subcontractor', e.currentTarget.dataset.mode || 'create', e.currentTarget);
 });
 
 document.getElementById('liToContact').addEventListener('click', (e) => {
-    sendImport('contact', e.currentTarget.dataset.mode || 'auto');
+    sendImport('contact', e.currentTarget.dataset.mode || 'auto', e.currentTarget);
 });
 document.getElementById('liToContactAlt').addEventListener('click', (e) => {
-    sendImport('contact', e.currentTarget.dataset.mode || 'create');
+    sendImport('contact', e.currentTarget.dataset.mode || 'create', e.currentTarget);
 });
 
-document.getElementById('liToJsonDownloadButton').addEventListener('click', () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            func: (lang) => {
-                window.liToJrInstance.preferLocale = lang;
-                window.liToJrInstance.parseAndDownload();
-            },
-            args: [getSelectedLang()]
+document.getElementById('liToJsonDownloadButton').addEventListener('click', async (e) => {
+    const button = e.currentTarget;
+    setBusy(button, true);
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+                window.liToJrInstance.preferLocale = window.liToJrInstance.getViewersLocalLang();
+                return window.liToJrInstance.parseAndDownload();
+            }
         });
-    });
+    } catch (error) {
+        console.error(error);
+    } finally {
+        setBusy(button, false);
+    }
 });
 
 document.getElementById('debugCheckButton').addEventListener('click', () => {
@@ -479,18 +391,10 @@ document.getElementById('signOutButton').addEventListener('click', async () => {
     showAccount(null);
 });
 
-LANG_SELECT.addEventListener('change', () => {
-    setLang(getSelectedLang());
-});
-
 API_SELECT.addEventListener('change', async () => {
     if (await refreshAccount()) {
         checkProfile();
     }
-});
-
-SPEC_SELECT.addEventListener('change', () => {
-    setSpecVersion(/** @type {SchemaVersion} */ (SPEC_SELECT.value));
 });
 
 /**
@@ -533,8 +437,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     target: { tabId: tabs[0].id },
                     func: () => {
                         const isDebug = window.location.href.includes('li2jr_debug=true');
-                        // Reference the globally exposed class
-                        window.liToJrInstance = typeof window.liToJrInstance !== 'undefined' ? window.liToJrInstance : new window.LinkedinToResumeJson(isDebug);
+                        // Always a new instance: one left in the tab by an older version of the plugin would run its old code
+                        window.liToJrInstance = new window.LinkedinToResumeJson(isDebug);
                         return window.liToJrInstance;
                     }
                 })
@@ -542,44 +446,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     // Instance exists in page context; don't use returned object from executeScript
                     // because methods are not preserved through structured cloning.
                     if (results && results[0]) {
-                        // Now that we have liToJrInstance, we can get the supported locales
-                        chrome.scripting
-                            .executeScript({
-                                target: { tabId: tabs[0].id },
-                                func: () => {
-                                    return window.liToJrInstance.getSupportedLocales();
-                                }
-                            })
-                            .then((localeResults) => {
-                                if (localeResults && localeResults[0] && localeResults[0].result) {
-                                    const supported = localeResults[0].result;
-                                    chrome.scripting
-                                        .executeScript({
-                                            target: { tabId: tabs[0].id },
-                                            func: () => {
-                                                return window.liToJrInstance.getViewersLocalLang();
-                                            }
-                                        })
-                                        .then((userLocaleResults) => {
-                                            if (userLocaleResults && userLocaleResults[0] && userLocaleResults[0].result) {
-                                                const user = userLocaleResults[0].result;
-                                                // Make sure user's own locale comes as first option
-                                                if (supported.includes(user)) {
-                                                    supported.splice(supported.indexOf(user), 1);
-                                                }
-                                                supported.unshift(user);
-                                            }
-                                            loadLangs(supported);
-                                        });
-                                }
-                            });
-
                         loadEnvironmentsAndAccount().then((account) => account && checkProfile());
                     }
                 });
         });
-});
-
-getSpecVersion().then((spec) => {
-    SPEC_SELECT.value = spec;
 });

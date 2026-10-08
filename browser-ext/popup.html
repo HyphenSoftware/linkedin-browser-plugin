@@ -1,77 +1,95 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>LinkedIn to Airtable</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>LinkedIn to Airtable</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <body class="signedOut">
+        <header class="header">
+            <div class="brand">
+                <span class="wordmark">Hyphen</span>
+                <span class="eyebrow">LinkedIn Importer</span>
+            </div>
+            <div class="account">
+                <span id="accountStatus">Not signed in</span>
+                <button id="signOutButton" class="linkButton hidden" title="Sign out of this environment">Sign out</button>
+            </div>
+        </header>
 
-<body class="signedOut">
-    <div id="updateBanner" class="updateBanner hidden">
-        <div>
-            Version <span id="updateVersion"></span> is available.
-            <a id="updateLink" target="_blank" rel="noopener">Download the zip</a>, unpack it over your current plugin folder, then click Reload.
-        </div>
-        <button id="reloadButton" class="mainButton" title="Restart the plugin with the files now in its folder">Reload</button>
-    </div>
-    <div class="fullCenter">
-        <span id="accountStatus">Not signed in</span>
-        <button id="signInButton" class="mainButton" title="Sign in with your Hyphen Microsoft account">Sign in</button>
-        <button id="signOutButton" class="mainButton hidden" title="Sign out of this environment">Sign out</button>
-    </div>
-    <div class="fullCenter">
-        <button id="liToJsonButton" class="mainButton disabled toggle" title="Export profile to JSON Resume">LinkedIn Profile to JSON</button>
-        <button id="liToJsonDownloadButton" class="mainButton emojiButton disabled toggle" title="Download JSON Resume Export">💾</button>
-        <button id="debugCheckButton" class="mainButton emojiButton requiresSignIn" title="Check whether this profile is already in Airtable">🔄</button>
-    </div>
-    <div class="fullCenter requiresSignIn">
-        <button id="liToSubcontractor" class="mainButton disabled toggle" title="Add as Subcontractor">Add as Subcontractor</button>
-        <button id="liToSubcontractorAlt" class="mainButton toggle hidden" title="Create new Subcontractor">Create new Subcontractor</button>
-    </div>
-    <div class="fullCenter requiresSignIn">
-        <button id="liToContact" class="mainButton disabled toggle" title="Add as Contact">Add as Contact</button>
-        <button id="liToContactAlt" class="mainButton toggle hidden" title="Create new Contact">Create new Contact</button>
-    </div>
-    <div class="fullCenter">
-        <div style="display: inline-block; margin: 20px;">
-            <div class="loader hidden"></div>
-        </div>
-        <div class="flex">
-            <div class="apiSelectWrapper">
-                <label>
-                    Environment:
-                </label>
-                <select id="apiSelect" class="apiSelect toggle">
-                    <option value="none">None</option>
-                </select>
-            </div>
-            <div class="langSelectWrapper hidden">
-                <label>
-                    Export language:
-                </label>
-                <select id="langSelect" class="langSelect toggle">
-                    <option value="en_US">en_US</option>
-                </select>
-            </div>
-            <div class="specSelectWrapper">
-                <label>
-                    JSONResume version:
-                </label>
-                <select id="specSelect" class="specSelect toggle">
-                    <option value="legacy">Legacy (v0.0.16)</option>
-                    <option value="stable" selected>Stable (v1.0.0)</option>
-                    <option value="beta">Currently even with stable (v1.0.0)</option>
-                </select>
-            </div>
-        </div>
-    </div>
-    <div class="fullCenter">
-        <span>Version: </span><span id="versionDisplay">{version_string}</span>
-    </div>
-    <script type="module" src="popup.js"></script>
-</body>
+        <main class="content">
+            <section id="updateBanner" class="updateBanner hidden">
+                <div class="updateText">
+                    <div class="eyebrow"><span class="marker exists"></span>Update available</div>
+                    <div>
+                        Version <span id="updateVersion"></span> is ready. <a id="updateLink" target="_blank" rel="noopener">Download the zip</a>, unpack it over your plugin folder, then reload.
+                    </div>
+                </div>
+                <button id="reloadButton" class="button primary" title="Restart the plugin with the files now in its folder">Reload</button>
+            </section>
 
+            <section class="card signedOutOnly">
+                <div>Sign in with your Hyphen Microsoft account to check and import profiles.</div>
+                <button id="signInButton" class="button primary" title="Sign in with your Hyphen Microsoft account">Sign in</button>
+            </section>
+
+            <section class="profile requiresSignIn">
+                <div class="eyebrow">Profile status</div>
+                <div id="profileStatus" class="statusMessage hidden"></div>
+                <div class="card">
+                    <div id="subcontractorStatus" class="entityStatus">
+                        <div class="entityHeading"><span class="marker"></span><span class="entityName">Subcontractor</span><span class="entityState"></span></div>
+                        <div class="entityDetails"></div>
+                    </div>
+                    <div class="entityActions">
+                        <button id="liToSubcontractor" class="button primary disabled toggle" title="Add as subcontractor">Add as subcontractor</button>
+                        <button id="liToSubcontractorAlt" class="button secondary toggle hidden" title="Create new subcontractor">Create new subcontractor</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div id="contactStatus" class="entityStatus">
+                        <div class="entityHeading"><span class="marker"></span><span class="entityName">Contact</span><span class="entityState"></span></div>
+                        <div class="entityDetails"></div>
+                    </div>
+                    <div class="entityActions">
+                        <button id="liToContact" class="button primary disabled toggle" title="Add as contact">Add as contact</button>
+                        <button id="liToContactAlt" class="button secondary toggle hidden" title="Create new contact">Create new contact</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tools">
+                <button id="liToJsonButton" class="button outline grow disabled toggle" title="Export profile to JSON Resume">Export as JSON Resume</button>
+                <button id="liToJsonDownloadButton" class="button outline icon disabled toggle" title="Download JSON Resume" aria-label="Download JSON Resume">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">
+                        <path d="M12 4v11"></path>
+                        <path d="M7 10l5 5 5-5"></path>
+                        <path d="M5 20h14"></path>
+                    </svg>
+                </button>
+                <button id="debugCheckButton" class="button outline icon requiresSignIn" title="Check whether this profile is already in Airtable" aria-label="Check profile again">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">
+                        <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>
+                        <path d="M20 4v5h-5"></path>
+                    </svg>
+                </button>
+            </section>
+
+            <section class="settings">
+                <div class="eyebrow">Settings</div>
+                <label class="setting">
+                    <span>Environment</span>
+                    <select id="apiSelect" class="apiSelect toggle">
+                        <option value="none">None</option>
+                    </select>
+                </label>
+            </section>
+        </main>
+
+        <footer class="footer">Version <span id="versionDisplay">{version_string}</span></footer>
+        <script type="module" src="popup.js"></script>
+    </body>
 </html>
