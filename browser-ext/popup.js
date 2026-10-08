@@ -1,6 +1,8 @@
 // @ts-nocheck
 // eslint-disable-next-line import/extensions
 import { showAccount as renderAccount } from './account-view.js';
+// eslint-disable-next-line import/extensions
+import { checkForUpdate, showUpdate } from './update-check.js';
 
 /**
  * =============================
@@ -330,16 +332,21 @@ const buildEntityStatusHtml = (entityStatus, label) => {
     `;
 };
 
+const isProfilePage = (tab) => !!tab?.url?.includes('linkedin.com/in');
+
 /**
  * Look the open profile up in Airtable and show the result
  */
 const checkProfile = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!isProfilePage(tab)) {
+        return;
+    }
     if (!getSelectedEnvironment()) {
         updateProfileStatus({ subcontractor: false, contact: false });
         return;
     }
     updateProfileStatus('loading');
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const [identityResult] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => window.liToJrInstance.getIdentityForApi()
@@ -493,18 +500,25 @@ SPEC_SELECT.addEventListener('change', () => {
  */
 document.getElementById('versionDisplay').innerText = chrome.runtime.getManifest().version;
 
+checkForUpdate(chrome.runtime.getManifest().version).then((update) => showUpdate(document, update));
+document.getElementById('reloadButton').addEventListener('click', () => chrome.runtime.reload());
+
+/** @returns {Promise<object | null>} the signed-in account of the preselected environment */
+const loadEnvironmentsAndAccount = async () => {
+    loadEnvironments(await fetchEnvironments());
+    return refreshAccount();
+};
+
 // Initialize the content script and get the liToJrInstance
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const currentTab = tabs[0];
-    const isLinkedInPage = currentTab.url.includes('linkedin.com/in');
-
     // Disable buttons if not on LinkedIn
-    if (!isLinkedInPage) {
+    if (!isProfilePage(tabs[0])) {
         document.getElementById('liToSubcontractor').disabled = true;
         document.getElementById('liToContact').disabled = true;
         document.getElementById('liToJsonButton').disabled = true;
         document.getElementById('liToJsonDownloadButton').disabled = true;
         document.getElementById('debugCheckButton').disabled = true;
+        loadEnvironmentsAndAccount();
         return;
     }
 
@@ -560,12 +574,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                                 }
                             });
 
-                        fetchEnvironments().then(async (json) => {
-                            loadEnvironments(json);
-                            if (await refreshAccount()) {
-                                checkProfile();
-                            }
-                        });
+                        loadEnvironmentsAndAccount().then((account) => account && checkProfile());
                     }
                 });
         });

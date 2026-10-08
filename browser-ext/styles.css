@@ -213,6 +213,28 @@ button:disabled {
     border: 1px solid #ffe0b2;
 }
 
+.updateBanner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #e8f0fe;
+    color: #174ea6;
+    border: 1px solid #c6dafc;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.updateBanner.hidden {
+    display: none;
+}
+
+.updateBanner a {
+    color: #0a66c2;
+    font-weight: 500;
+}
+
 #versionDisplay {
     color: #666;
     font-size: 12px;

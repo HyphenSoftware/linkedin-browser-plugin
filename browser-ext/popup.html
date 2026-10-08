@@ -10,6 +10,13 @@
 </head>
 
 <body class="signedOut">
+    <div id="updateBanner" class="updateBanner hidden">
+        <div>
+            Version <span id="updateVersion"></span> is available.
+            <a id="updateLink" target="_blank" rel="noopener">Download the zip</a>, unpack it over your current plugin folder, then click Reload.
+        </div>
+        <button id="reloadButton" class="mainButton" title="Restart the plugin with the files now in its folder">Reload</button>
+    </div>
     <div class="fullCenter">
         <span id="accountStatus">Not signed in</span>
         <button id="signInButton" class="mainButton" title="Sign in with your Hyphen Microsoft account">Sign in</button>

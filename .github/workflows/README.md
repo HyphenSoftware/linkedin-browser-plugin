@@ -40,6 +40,8 @@ This directory contains automated workflows for the LinkedIn Profile Extractor p
 - Artifact: `browser-extension-[version]` containing `build_[version].zip`
 - Release: Draft release with auto-generated release notes (for tags only)
 
+Publishing the draft (not as a pre-release) is what rolls the update out: the popup checks the latest published release and, when its tag is newer than the installed version, shows an update banner with a link to its zip. Users see it within an hour.
+
 ---
 
 ## Quick Setup Checklist
