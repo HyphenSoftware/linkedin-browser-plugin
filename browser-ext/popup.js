@@ -3,6 +3,8 @@
 import { showAccount as renderAccount } from './account-view.js';
 // eslint-disable-next-line import/extensions
 import { checkForUpdate, showUpdate } from './update-check.js';
+// eslint-disable-next-line import/extensions
+import { formatDate } from './format-date.js';
 
 /**
  * =============================
@@ -134,7 +136,7 @@ const applyEntityButton = (primaryId, altId, entityStatus, label) => {
         if (alt) {
             alt.classList.remove('hidden');
             alt.dataset.mode = 'create';
-            alt.textContent = `Create new ${label}`;
+            alt.textContent = 'Create new';
             alt.title = `Not the same person? Create a new ${label} instead`;
             alt.disabled = false;
         }
@@ -194,16 +196,16 @@ const renderEntityStatus = (id, entityStatus) => {
     }
     const facts = [];
     if (entityStatus.lastImported) {
-        facts.push(`Last imported ${entityStatus.lastImported}`);
+        facts.push(`Last imported ${formatDate(entityStatus.lastImported)}`);
     }
     if (entityStatus.lastContacted) {
-        facts.push(`Last contacted ${entityStatus.lastContacted} by ${entityStatus.lastContactedBy?.name || 'unknown'}`);
+        facts.push(`Last contacted ${formatDate(entityStatus.lastContacted)} by ${entityStatus.lastContactedBy?.name || 'unknown'}`);
     }
-    if (facts.length) {
+    facts.forEach((fact) => {
         const line = document.createElement('div');
-        line.textContent = facts.join(' · ');
+        line.textContent = fact;
         details.appendChild(line);
-    }
+    });
     if (entityStatus.multipleProfiles) {
         const warning = document.createElement('div');
         warning.className = 'entityWarning';

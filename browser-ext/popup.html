@@ -22,13 +22,9 @@
 
         <main class="content">
             <section id="updateBanner" class="updateBanner hidden">
-                <div class="updateText">
-                    <div class="eyebrow"><span class="marker exists"></span>Update available</div>
-                    <div>
-                        Version <span id="updateVersion"></span> is ready. <a id="updateLink" target="_blank" rel="noopener">Download the zip</a>, unpack it over your plugin folder, then reload.
-                    </div>
-                </div>
-                <button id="reloadButton" class="button primary" title="Restart the plugin with the files now in its folder">Reload</button>
+                <span class="marker exists"></span>
+                <div class="updateText">Version <span id="updateVersion"></span> is ready. <a id="updateLink" target="_blank" rel="noopener">Download the zip</a></div>
+                <button id="reloadButton" class="button primary" title="Unpack the zip over your plugin folder, then reload to start the new version">Reload</button>
             </section>
 
             <section class="card signedOutOnly">
@@ -46,7 +42,7 @@
                     </div>
                     <div class="entityActions">
                         <button id="liToSubcontractor" class="button primary disabled toggle" title="Add as subcontractor">Add as subcontractor</button>
-                        <button id="liToSubcontractorAlt" class="button secondary toggle hidden" title="Create new subcontractor">Create new subcontractor</button>
+                        <button id="liToSubcontractorAlt" class="button secondary toggle hidden" title="Create new subcontractor">Create new</button>
                     </div>
                 </div>
                 <div class="card">
@@ -56,7 +52,7 @@
                     </div>
                     <div class="entityActions">
                         <button id="liToContact" class="button primary disabled toggle" title="Add as contact">Add as contact</button>
-                        <button id="liToContactAlt" class="button secondary toggle hidden" title="Create new contact">Create new contact</button>
+                        <button id="liToContactAlt" class="button secondary toggle hidden" title="Create new contact">Create new</button>
                     </div>
                 </div>
             </section>
@@ -77,19 +73,17 @@
                     </svg>
                 </button>
             </section>
-
-            <section class="settings">
-                <div class="eyebrow">Settings</div>
-                <label class="setting">
-                    <span>Environment</span>
-                    <select id="apiSelect" class="apiSelect toggle">
-                        <option value="none">None</option>
-                    </select>
-                </label>
-            </section>
         </main>
 
-        <footer class="footer">Version <span id="versionDisplay">{version_string}</span></footer>
+        <footer class="footer">
+            <label class="setting">
+                <span>Environment</span>
+                <select id="apiSelect" class="apiSelect toggle">
+                    <option value="none">None</option>
+                </select>
+            </label>
+            <span>Version <span id="versionDisplay">{version_string}</span></span>
+        </footer>
         <script type="module" src="popup.js"></script>
     </body>
 </html>

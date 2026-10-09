@@ -52,7 +52,7 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 20px;
+    padding: 16px;
     border-bottom: 1px solid var(--border-1);
 }
 
@@ -95,15 +95,15 @@ a:hover {
 .content {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 20px;
+    gap: 16px;
+    padding: 16px;
 }
 
 .card {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 14px;
+    gap: 10px;
+    padding: 12px;
     border: 1px solid var(--border-1);
 }
 
@@ -113,8 +113,12 @@ a:hover {
 }
 
 .button {
-    height: 40px;
+    height: 36px;
     padding: 0 14px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
     border: 1px solid var(--fg-1);
     border-radius: var(--radius);
     font: inherit;
@@ -172,7 +176,7 @@ a:focus-visible {
 }
 
 .button.icon {
-    width: 40px;
+    width: 36px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -186,34 +190,27 @@ a:focus-visible {
 .updateBanner {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: 10px;
+    padding: 8px 8px 8px 12px;
     background: var(--bg-2);
     border: 1px solid var(--border-1);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.45;
 }
 
 .updateText {
     flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.updateText .eyebrow {
-    color: var(--fg-1);
 }
 
 .updateBanner .button {
-    height: 36px;
+    height: 32px;
     font-size: 13px;
 }
 
 .profile {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .statusMessage {
@@ -306,26 +303,16 @@ a:focus-visible {
     gap: 8px;
 }
 
-.settings {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 14px;
-    background: var(--bg-2);
-}
-
 .setting {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    color: var(--fg-2);
+    gap: 8px;
 }
 
 .setting select {
-    width: 190px;
-    height: 36px;
-    padding: 0 10px;
+    width: 110px;
+    height: 30px;
+    padding: 0 8px;
     border: 1px solid var(--border-2);
     border-radius: var(--radius);
     background: var(--bg-1);
@@ -339,8 +326,13 @@ a:focus-visible {
 }
 
 .footer {
-    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 16px;
     border-top: 1px solid var(--border-1);
+    background: var(--bg-2);
     font-size: 12px;
     color: var(--fg-2);
 }
